@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaddleUp.io - Horse Racing</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <h1>🏇 SaddleUp.io</h1>
+                <p>Welcome to the premier online horse racing experience!</p>
+                <form id="login-form">
+                    <input type="text" id="username" placeholder="Enter your username" required>
+                    <button type="submit">Enter Track</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <!-- Header -->
+            <header class="game-header">
+                <div class="logo">🏇 SaddleUp.io</div>
+                <div class="user-info">
+                    <span id="user-name"></span>
+                    <span id="user-balance">$0.00</span>
+                </div>
+            </header>
+
+            <!-- Main Game Area -->
+            <div class="game-container">
+                <!-- Main Content -->
+                <div class="main-content">
+                    <!-- Race Info -->
+                    <div class="race-info">
+                        <h2 id="race-title">Race #1</h2>
+                        <div class="race-status">
+                            <span id="race-phase">Betting</span>
+                            <span id="time-remaining">30s</span>
+                        </div>
+                    </div>
+
+                    <!-- Race Track -->
+                    <div class="race-track">
+                        <div class="track-lanes" id="track-lanes">
+                            <!-- Horse lanes will be dynamically generated -->
+                        </div>
+                        <div class="finish-line"></div>
+                    </div>
+
+                    <!-- Active Bets Display -->
+                    <div id="active-bets" class="active-bets hidden">
+                        <h4>Your Bets This Race</h4>
+                        <div id="bets-list"></div>
+                    </div>
+
+                    <!-- Odds Legend -->
+                    <div class="odds-legend">
+                        <h4>Odds Guide</h4>
+                        <div class="legend-items">
+                            <div class="legend-item">
+                                <div class="legend-color odds-favorite"></div>
+                                <span>Strong Favorites (≤$1.50)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color odds-strong"></div>
+                                <span>Good Favorites (≤$2.50)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color odds-moderate"></div>
+                                <span>Moderate Odds (≤$4.00)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color odds-long"></div>
+                                <span>Long Odds (≤$8.00)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color odds-longshot"></div>
+                                <span>Longshots (>$8.00)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Betting Panel -->
+                    <div class="betting-panel">
+                        <h3>Place Your Bets</h3>
+                        
+                        <div class="bet-types">
+                            <button class="bet-type active" data-type="winner">Winner ($1)</button>
+                            <button class="bet-type" data-type="place">Place ($1)</button>
+                            <button class="bet-type" data-type="trifecta">Trifecta ($1)</button>
+                        </div>
+
+                        <div class="betting-options">
+                            <!-- Winner/Place Betting -->
+                            <div id="single-bet" class="bet-section active">
+                                <div class="horses-grid" id="horses-grid">
+                                    <!-- Horse betting buttons will be generated -->
+                                </div>
+                            </div>
+
+                            <!-- Trifecta Betting -->
+                            <div id="trifecta-bet" class="bet-section">
+                                <p>Select 3 horses in exact finishing order:</p>
+                                <div class="trifecta-selection">
+                                    <select id="trifecta-1st">
+                                        <option value="">1st Place</option>
+                                    </select>
+                                    <select id="trifecta-2nd">
+                                        <option value="">2nd Place</option>
+                                    </select>
+                                    <select id="trifecta-3rd">
+                                        <option value="">3rd Place</option>
+                                    </select>
+                                    <button id="place-trifecta-btn">Place Trifecta Bet</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Race Results -->
+                    <div id="race-results" class="race-results hidden">
+                        <h3>Race Results</h3>
+                        <div id="results-list"></div>
+                        <div id="payout-info"></div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard Sidebar -->
+                <div class="leaderboard-sidebar">
+                    <h3>🏆 Leaderboard</h3>
+                    <div id="leaderboard-list"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Error Messages -->
+        <div id="error-message" class="error-message hidden"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
