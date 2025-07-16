@@ -1,27 +1,36 @@
 name: Deploy to DigitalOcean
-
 on:
   push:
     branches: [ master ]
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Deploy to server
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          cd /home/saddleup/saddleup
-          git pull origin master
-          source venv/bin/activate
-          pip install -r requirements.txt
-          sudo systemctl restart saddleup
-          sudo systemctl restart nginx
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /home/saddleup/saddleup
+            git pull origin master
+            
+            # Update backend
+            source venv/bin/activate
+            pip install -r requirements.txt
+            
+            # Update frontend files permissions (nginx serves from /home/saddleup/saddleup/frontend)
+            sudo chown -R www-data:www-data /home/saddleup/saddleup/frontend/
+            sudo chmod -R 755 /home/saddleup/saddleup/frontend/
+            
+            # Clear nginx cache and verify frontend files were updated
+            sudo rm -f /var/cache/nginx/*
+            echo "Frontend files updated at $(date)"
+            ls -la /home/saddleup/saddleup/frontend/
+            
+            # Restart services
+            sudo systemctl restart saddleup
+            sudo systemctl restart nginx
