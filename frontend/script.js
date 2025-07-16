@@ -81,32 +81,44 @@ class SaddleUpGame {
             this.placeTrifectaBet();
         });
     }
-    
+
     connect() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.hostname || 'localhost';
-        const port = '8765';
+        // Auto-detect environment and use appropriate WebSocket URL
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.hostname;
         
-        this.ws = new WebSocket(`${protocol}//${host}:${port}`);
+        // Use /ws path for production, direct port for development
+        let wsUrl;
+        if (wsHost === 'localhost' || wsHost === '127.0.0.1') {
+            // Development environment
+            wsUrl = `ws://${wsHost}:8765`;
+        } else {
+            // Production environment
+            wsUrl = `${wsProtocol}//${wsHost}/ws`;
+        }
+        
+        console.log('Connecting to WebSocket:', wsUrl);
+        this.ws = new WebSocket(wsUrl);
         
         this.ws.onopen = () => {
-            console.log('Connected to server');
-            this.showSuccess('Connected to server');
+            console.log('Connected to WebSocket server');
+            this.connected = true;
+            this.login();
         };
         
         this.ws.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            this.handleMessage(message);
+            const data = JSON.parse(event.data);
+            this.handleMessage(data);
         };
         
         this.ws.onclose = () => {
-            console.log('Disconnected from server');
-            setTimeout(() => this.connect(), 3000); // Reconnect after 3 seconds
+            console.log('WebSocket connection closed');
+            this.connected = false;
+            setTimeout(() => this.connect(), 3000);
         };
         
         this.ws.onerror = (error) => {
             console.error('WebSocket error:', error);
-            this.showError('Connection error. Trying to reconnect...');
         };
     }
     
