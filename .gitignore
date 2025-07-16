@@ -45,6 +45,7 @@ venv.bak/
 *~
 .DS_Store
 Thumbs.db
+pyproject.toml
 
 # Logs and Databases
 *.log

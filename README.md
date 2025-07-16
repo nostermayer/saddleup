@@ -6,7 +6,7 @@ A real-time WebSocket-based horse racing gambling game built with Python backend
 
 - **20 horses per race** with hidden stats (speed, stamina, consistency) that determine realistic odds
 - **3 bet types**: Winner ($1), Place ($1), Trifecta ($1) with 15% house edge
-- **Color-coded horses**: Visual odds indicators using green (favorites) to red (longshots) both in betting and racing
+- **Color-coded horses**: Visual odds indicators using blue (favorites) to red (longshots) both in betting and racing
 - **Dynamic betting period** with real-time odds updates every 0.25 seconds
 - **Live race simulation** ending 1 second after third place finishes
 - **Comprehensive results** showing top 3 horses with odds, trifecta info, and top 10 race winners
@@ -31,8 +31,8 @@ A real-time WebSocket-based horse racing gambling game built with Python backend
 ### Frontend (HTML/JS)
 - **Real-time WebSocket connection** for live updates
 - **Responsive design** with mobile support
-- **Color-coded betting interface** with visual odds indicators (green to red scale)
-- **Live race visualization** with color-coded animated horses matching odds
+- **Color-coded betting interface** with visual odds indicators (blue to red scale)
+- **Live race visualization** with color-coded animated horses matching odds (hidden during betting phase)
 - **Active bets tracking** showing player's current race wagers
 - **Real-time odds display** updating every 250ms with $X.XX format
 - **Visual odds legend** with color-coded guide for all odds tiers
@@ -141,12 +141,12 @@ All game settings can be configured via environment variables in `config/setting
 - **Power-scaled probability** enhancement making favorites and longshots more distinct
 - **Dynamic adjustment** as bets are placed with 15% house edge maintained
 - **Realistic odds distribution** creating proper favorites ($1.20-$2.50) to longshots ($10.00+)
-- **Visual color coding**: Green (≤$1.50) → Light Green (≤$2.50) → Yellow (≤$4.00) → Orange (≤$8.00) → Red (>$8.00)
+- **Visual color coding**: Blue (≤$1.50) → Green (≤$2.50) → Yellow (≤$4.00) → Orange (≤$8.00) → Red (>$8.00)
 - **Live updates** every 0.25 seconds during betting phase with $X.XX format display
 
 ### Race Simulation
 - **Stat-based performance** - Horse stats determine racing ability
-- **Color-coded horses** - Racing horses display same color as their odds (green=favorites, red=longshots)
+- **Color-coded horses** - Racing horses display same color as their odds (blue=favorites, red=longshots)
 - **Dynamic race duration** - Ends 1 second after third place finishes
 - **Real-time position updates** with 100ms intervals for smooth animation
 - **Fair randomization** ensures unpredictable but realistic outcomes

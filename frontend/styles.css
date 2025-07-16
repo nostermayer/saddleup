@@ -239,8 +239,8 @@ body {
 
 /* Racing horse colors based on odds */
 .horse.odds-favorite {
-    background: linear-gradient(135deg, #228B22, #32CD32);
-    border: 2px solid #228B22;
+    background: linear-gradient(135deg, #4169E1, #6495ED);
+    border: 2px solid #4169E1;
 }
 
 .horse.odds-strong {
@@ -293,6 +293,14 @@ body {
     border-radius: 10px;
     padding: 1.5rem;
     margin: 2rem 0;
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.betting-panel:hover {
+    border-color: rgba(255, 215, 0, 0.5);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.2);
 }
 
 .betting-panel h3 {
@@ -361,8 +369,8 @@ body {
 
 /* Odds-based color scaling */
 .horse-bet-btn.odds-favorite {
-    background: linear-gradient(135deg, rgba(34, 139, 34, 0.3), rgba(34, 139, 34, 0.1));
-    border-color: rgba(34, 139, 34, 0.5);
+    background: linear-gradient(135deg, rgba(65, 105, 225, 0.3), rgba(65, 105, 225, 0.1));
+    border-color: rgba(65, 105, 225, 0.5);
 }
 
 .horse-bet-btn.odds-strong {
@@ -387,7 +395,7 @@ body {
 
 /* Hover effects for odds-based colors */
 .horse-bet-btn.odds-favorite:hover {
-    background: linear-gradient(135deg, rgba(34, 139, 34, 0.4), rgba(34, 139, 34, 0.2));
+    background: linear-gradient(135deg, rgba(65, 105, 225, 0.4), rgba(65, 105, 225, 0.2));
 }
 
 .horse-bet-btn.odds-strong:hover {
@@ -436,6 +444,26 @@ body {
     min-width: 140px;
 }
 
+/* Sidebar specific styles for odds legend */
+.leaderboard-sidebar .odds-legend {
+    margin-top: 1.5rem;
+}
+
+.leaderboard-sidebar .legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.leaderboard-sidebar .legend-item {
+    min-width: auto;
+    flex: none;
+}
+
+.leaderboard-sidebar .legend-item span {
+    font-size: 0.8rem;
+}
+
 .legend-color {
     width: 20px;
     height: 20px;
@@ -444,7 +472,7 @@ body {
 }
 
 .legend-color.odds-favorite {
-    background: linear-gradient(135deg, rgba(34, 139, 34, 0.6), rgba(34, 139, 34, 0.3));
+    background: linear-gradient(135deg, rgba(65, 105, 225, 0.6), rgba(65, 105, 225, 0.3));
 }
 
 .legend-color.odds-strong {

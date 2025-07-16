@@ -177,7 +177,7 @@ class WebSocketServer:
             "user": {
                 "id": user.id,
                 "username": user.username,
-                "balance": user.balance,
+                "balance": round(user.balance, 2),
                 "total_winnings": user.total_winnings,
                 "races_played": user.races_played
             }
@@ -306,7 +306,7 @@ class WebSocketServer:
                     "amount": amount,
                     "selection": selection
                 },
-                "new_balance": user.balance
+                "new_balance": round(user.balance, 2)
             })
             
             # Broadcast updated leaderboard
@@ -315,7 +315,7 @@ class WebSocketServer:
                 "leaders": [
                     {
                         "username": user.username,
-                        "balance": user.balance,
+                        "balance": round(user.balance, 2),
                         "total_winnings": user.total_winnings,
                         "races_played": user.races_played
                     } for user in self.game_state.leaderboard
@@ -441,7 +441,7 @@ class WebSocketServer:
             "leaders": [
                 {
                     "username": user.username,
-                    "balance": user.balance,
+                    "balance": round(user.balance, 2),
                     "total_winnings": user.total_winnings,
                     "races_played": user.races_played
                 } for user in self.game_state.leaderboard
@@ -584,9 +584,9 @@ class WebSocketServer:
                     
                     trifecta_info = {
                         "winning_combination": winning_trifecta,
-                        "total_pool": trifecta_pool,
+                        "total_pool": round(trifecta_pool, 2),
                         "winners_count": trifecta_winners,
-                        "payout_per_dollar": trifecta_pool / sum(bet.amount for bet in winning_bets) if winning_bets else 0
+                        "payout_per_dollar": round(trifecta_pool / sum(bet.amount for bet in winning_bets), 2) if winning_bets else 0.0
                     }
                 
                 # Get top 10 winners for this race
@@ -599,10 +599,10 @@ class WebSocketServer:
                             if user_id not in race_winners:
                                 race_winners[user_id] = {
                                     "user_id": user_id,
-                                    "total_winnings": 0,
+                                    "total_winnings": 0.0,
                                     "bets": []
                                 }
-                            race_winners[user_id]["total_winnings"] += payout
+                            race_winners[user_id]["total_winnings"] += round(payout, 2)
             
                 # Now get the bets for each winning user
                 for user_id, winner_data in race_winners.items():
@@ -623,7 +623,7 @@ class WebSocketServer:
                                     "type": "winner",
                                     "horse_id": horse_id,
                                     "horse_name": next(h.name for h in race.horses if h.id == horse_id),
-                                    "amount": bet.amount
+                                    "amount": round(bet.amount, 2)
                                 })
                     
                     # Check place bets
@@ -634,7 +634,7 @@ class WebSocketServer:
                                     "type": "place",
                                     "horse_id": horse_id,
                                     "horse_name": next(h.name for h in race.horses if h.id == horse_id),
-                                    "amount": bet.amount
+                                    "amount": round(bet.amount, 2)
                                 })
                     
                     # Check trifecta bets
@@ -645,7 +645,7 @@ class WebSocketServer:
                                 "type": "trifecta",
                                 "selection": bet.selection,
                                 "horse_names": horse_names,
-                                "amount": bet.amount
+                                "amount": round(bet.amount, 2)
                             })
                 
                 # Convert to list and sort by winnings, get top 10

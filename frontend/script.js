@@ -194,6 +194,16 @@ class SaddleUpGame {
             raceTrack.style.display = 'none';
             this.raceResults.classList.remove('hidden');
             this.activeBets.classList.add('hidden');
+        } else if (race.phase === 'betting') {
+            raceTrack.style.display = 'none';
+            this.raceResults.classList.add('hidden');
+            this.activeBets.classList.add('hidden');
+            
+            // Clear bets for new race
+            if (!this.currentRace || race.id !== this.currentRace.id) {
+                this.currentRaceBets = [];
+                this.payoutInfo.innerHTML = '';
+            }
         } else {
             raceTrack.style.display = 'block';
             this.raceResults.classList.add('hidden');
@@ -204,12 +214,6 @@ class SaddleUpGame {
                 this.updateActiveBetsDisplay();
             } else {
                 this.activeBets.classList.add('hidden');
-            }
-            
-            // Clear bets for new race
-            if (race.phase === 'betting' && (!this.currentRace || race.id !== this.currentRace.id)) {
-                this.currentRaceBets = [];
-                this.payoutInfo.innerHTML = '';
             }
         }
     }
@@ -522,9 +526,9 @@ class SaddleUpGame {
                 let betsHtml = '';
                 winner.bets.forEach(bet => {
                     if (bet.type === 'trifecta') {
-                        betsHtml += `<div class="bet-detail">Trifecta: ${bet.horse_names.join('-')} ($${bet.amount})</div>`;
+                        betsHtml += `<div class="bet-detail">Trifecta: ${bet.horse_names.join('-')} ($${bet.amount.toFixed(2)})</div>`;
                     } else {
-                        betsHtml += `<div class="bet-detail">${bet.type.charAt(0).toUpperCase() + bet.type.slice(1)}: ${bet.horse_name} ($${bet.amount})</div>`;
+                        betsHtml += `<div class="bet-detail">${bet.type.charAt(0).toUpperCase() + bet.type.slice(1)}: ${bet.horse_name} ($${bet.amount.toFixed(2)})</div>`;
                     }
                 });
                 
