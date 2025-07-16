@@ -80,6 +80,14 @@ class SaddleUpGame {
         this.placeTrifectaBtn.addEventListener('click', () => {
             this.placeTrifectaBet();
         });
+        
+        // Contact button
+        const contactBtn = document.getElementById('contact-btn');
+        if (contactBtn) {
+            contactBtn.addEventListener('click', () => {
+                this.openContactEmail();
+            });
+        }
     }
 
     connect() {
@@ -834,6 +842,17 @@ class SaddleUpGame {
             console.error('WebSocket not connected. Current state:', this.ws?.readyState);
             this.showError('Connection not ready. Please wait and try again.');
         }
+    }
+    
+    openContactEmail() {
+        // Obfuscated email to prevent bot scraping
+        const parts = ['nick', 'nickostermayer', 'com'];
+        const email = parts[0] + '@' + parts[1] + '.' + parts[2];
+        const subject = 'SaddleUp.io Feedback';
+        const body = 'Hi Nick,\n\nI wanted to reach out about SaddleUp.io:\n\n';
+        
+        const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailtoLink;
     }
 }
 
