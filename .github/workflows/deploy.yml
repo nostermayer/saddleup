@@ -16,21 +16,55 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /home/saddleup/saddleup
+            
+            # Show current frontend file timestamps BEFORE git pull
+            echo "=== BEFORE GIT PULL ==="
+            ls -la frontend/
+            echo "Current git commit:"
+            git rev-parse HEAD
+            
+            # Pull latest changes
             git pull origin master
+            
+            # Show frontend file timestamps AFTER git pull
+            echo "=== AFTER GIT PULL ==="
+            ls -la frontend/
+            echo "New git commit:"
+            git rev-parse HEAD
+            
+            # Check if files actually changed
+            echo "=== GIT DIFF CHECK ==="
+            git diff HEAD~1 HEAD --name-only
             
             # Update backend
             source venv/bin/activate
             pip install -r requirements.txt
             
-            # Update frontend files permissions (nginx serves from /home/saddleup/saddleup/frontend)
+            # Fix permissions
             sudo chown -R www-data:www-data /home/saddleup/saddleup/frontend/
             sudo chmod -R 755 /home/saddleup/saddleup/frontend/
             
-            # Clear nginx cache and verify frontend files were updated
-            sudo rm -f /var/cache/nginx/*
-            echo "Frontend files updated at $(date)"
-            ls -la /home/saddleup/saddleup/frontend/
+            # Check nginx configuration
+            echo "=== NGINX CONFIG ==="
+            sudo nginx -t
+            grep -n "root\|server_name" /etc/nginx/sites-enabled/*
             
-            # Restart services
+            # Check if nginx can access files
+            echo "=== NGINX ACCESS TEST ==="
+            sudo -u www-data test -r /home/saddleup/saddleup/frontend/index.html && echo "nginx CAN read index.html" || echo "nginx CANNOT read index.html"
+            
+            # Clear any potential caches
+            sudo rm -rf /var/cache/nginx/*
+            
+            # Restart services with status check
+            echo "=== RESTARTING SERVICES ==="
             sudo systemctl restart saddleup
+            sudo systemctl status saddleup --no-pager -l
+            
             sudo systemctl restart nginx
+            sudo systemctl status nginx --no-pager -l
+            
+            echo "=== DEPLOYMENT COMPLETE ==="
+            echo "Frontend served from: /home/saddleup/saddleup/frontend/"
+            echo "Backend service: saddleup"
+            echo "Timestamp: $(date)"
