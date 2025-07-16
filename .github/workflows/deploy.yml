@@ -64,7 +64,7 @@ jobs:
             sudo systemctl restart nginx
             sudo systemctl status nginx --no-pager -l
             
-            echo "=== DEPLOYMENT COMPLETE ==="
+            echo "=== DEPLOYMENT COMPLETE! ==="
             echo "Frontend served from: /home/saddleup/saddleup/frontend/"
             echo "Backend service: saddleup"
             echo "Timestamp: $(date)"
