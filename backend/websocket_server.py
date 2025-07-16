@@ -20,6 +20,7 @@ class WebSocketServer:
         self.race_engine = RaceEngine()
         self.connected_clients: Dict[str, websockets.WebSocketServerProtocol] = {}
         self.user_connections: Dict[str, str] = {}  # user_id -> connection_id
+        self.pending_disconnections: Dict[str, asyncio.Task] = {}  # user_id -> cleanup task
         
         # Rate limiting - track connections per IP
         self.connection_attempts: Dict[str, List[float]] = {}  # IP -> [timestamps]
@@ -133,8 +134,60 @@ class WebSocketServer:
             user = self.game_state.get_user(user_id)
             if user:
                 user.connected = False
+                logger.info(f"User {user.username} ({user_id}) disconnected, starting 60s removal timer")
+                
+                # Cancel any existing disconnection timer for this user
+                if user_id in self.pending_disconnections:
+                    self.pending_disconnections[user_id].cancel()
+                
+                # Start a new 60-second timer for user removal
+                self.pending_disconnections[user_id] = asyncio.create_task(
+                    self.delayed_user_removal(user_id, 60.0)
+                )
+            
             del self.user_connections[user_id]
             self.game_state.update_leaderboard(self.ai_manager.get_all_ai_users())
+    
+    async def delayed_user_removal(self, user_id: str, delay_seconds: float):
+        """Remove a user after a specified delay, unless they reconnect"""
+        try:
+            await asyncio.sleep(delay_seconds)
+            
+            # Check if user still exists and is still disconnected
+            user = self.game_state.get_user(user_id)
+            if user and not user.connected:
+                logger.info(f"Removing user {user.username} ({user_id}) after {delay_seconds}s timeout")
+                
+                # Remove user from game state
+                if user_id in self.game_state.users:
+                    del self.game_state.users[user_id]
+                
+                # Update leaderboard after user removal
+                self.game_state.update_leaderboard(self.ai_manager.get_all_ai_users())
+                
+                # Broadcast updated leaderboard
+                await self.broadcast({
+                    "type": "leaderboard",
+                    "leaders": [
+                        {
+                            "username": leaderboard_user.username,
+                            "balance": round(leaderboard_user.balance, 2),
+                            "total_winnings": leaderboard_user.total_winnings,
+                            "races_played": leaderboard_user.races_played,
+                            "rank": leaderboard_user.rank
+                        } for leaderboard_user in self.game_state.leaderboard[:10]
+                    ]
+                })
+                
+                # Clean up pending disconnection
+                if user_id in self.pending_disconnections:
+                    del self.pending_disconnections[user_id]
+                    
+        except asyncio.CancelledError:
+            logger.info(f"User removal for {user_id} cancelled (user likely reconnected)")
+            # Clean up pending disconnection
+            if user_id in self.pending_disconnections:
+                del self.pending_disconnections[user_id]
     
     async def handle_message(self, connection_id: str, message: dict):
         message_type = message.get("type")
@@ -169,18 +222,18 @@ class WebSocketServer:
         else:
             user = self.game_state.get_user(user_id)
             user.connected = True
+            
+            # Cancel any pending disconnection for this user (they're reconnecting)
+            if user_id in self.pending_disconnections:
+                self.pending_disconnections[user_id].cancel()
+                del self.pending_disconnections[user_id]
+                logger.info(f"User {user.username} ({user_id}) reconnected, cancelling removal timer")
         
         self.user_connections[user_id] = connection_id
         
         await self.send_to_client(connection_id, {
             "type": "login_success",
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "balance": round(user.balance, 2),
-                "total_winnings": user.total_winnings,
-                "races_played": user.races_played
-            }
+            "user": self.serialize_user(user)
         })
         
         await self.send_race_state(connection_id)
@@ -297,7 +350,6 @@ class WebSocketServer:
         bet = Bet(user_id=user_id, bet_type=bet_type, amount=amount, selection=selection)
         if self.game_state.current_race.add_bet(bet):
             user.balance -= amount
-            self.game_state.update_leaderboard(self.ai_manager.get_all_ai_users())
             
             await self.send_to_client(connection_id, {
                 "type": "bet_placed",
@@ -306,20 +358,8 @@ class WebSocketServer:
                     "amount": amount,
                     "selection": selection
                 },
-                "new_balance": round(user.balance, 2)
-            })
-            
-            # Broadcast updated leaderboard
-            await self.broadcast({
-                "type": "leaderboard",
-                "leaders": [
-                    {
-                        "username": user.username,
-                        "balance": round(user.balance, 2),
-                        "total_winnings": user.total_winnings,
-                        "races_played": user.races_played
-                    } for user in self.game_state.leaderboard
-                ]
+                "new_balance": round(user.balance, 2),
+                "user": self.serialize_user(user)
             })
     
     def get_user_by_connection(self, connection_id: str) -> str:
@@ -327,6 +367,18 @@ class WebSocketServer:
             if cid == connection_id:
                 return user_id
         return None
+    
+    def serialize_user(self, user: User) -> dict:
+        """Serialize user object for frontend transmission"""
+        return {
+            "id": user.id,
+            "username": user.username,
+            "balance": round(user.balance, 2),
+            "total_winnings": user.total_winnings,
+            "races_played": user.races_played,
+            "rank": user.rank,
+            "connected": user.connected
+        }
     
     async def send_to_client(self, connection_id: str, message: dict):
         if connection_id in self.connected_clients:
@@ -408,6 +460,12 @@ class WebSocketServer:
         if not race:
             return
         
+        # Get user for this connection
+        user_id = self.get_user_by_connection(connection_id)
+        user = None
+        if user_id:
+            user = self.game_state.get_user(user_id)
+        
         # Calculate odds for all horses
         odds = {}
         for horse in race.horses:
@@ -416,7 +474,7 @@ class WebSocketServer:
                 "place": race.calculate_odds(horse.id, BetType.PLACE)
             }
         
-        await self.send_to_client(connection_id, {
+        message = {
             "type": "race_state",
             "race": {
                 "id": race.id,
@@ -433,20 +491,43 @@ class WebSocketServer:
                 "odds": odds,
                 "time_remaining": self.get_phase_time_remaining()
             }
-        })
+        }
+        
+        # Add user object if available
+        if user:
+            message["user"] = self.serialize_user(user)
+        
+        await self.send_to_client(connection_id, message)
     
     async def send_leaderboard(self, connection_id: str):
-        await self.send_to_client(connection_id, {
+        # Get the current user's rank
+        user_id = self.get_user_by_connection(connection_id)
+        current_user_rank = None
+        current_user = None
+        if user_id:
+            current_user = self.game_state.get_user(user_id)
+            if current_user:
+                current_user_rank = current_user.rank
+        
+        message = {
             "type": "leaderboard",
             "leaders": [
                 {
                     "username": user.username,
                     "balance": round(user.balance, 2),
                     "total_winnings": user.total_winnings,
-                    "races_played": user.races_played
-                } for user in self.game_state.leaderboard
-            ]
-        })
+                    "races_played": user.races_played,
+                    "rank": user.rank
+                } for user in self.game_state.leaderboard[:10]
+            ],
+            "current_user_rank": current_user_rank
+        }
+        
+        # Add user object if available
+        if current_user:
+            message["user"] = self.serialize_user(current_user)
+        
+        await self.send_to_client(connection_id, message)
     
     def get_phase_time_remaining(self) -> float:
         if not self.game_state.current_race:
@@ -737,11 +818,11 @@ class WebSocketServer:
         
         for bet_time, ai_player_id, bet_info in due_bets:
             success = self.ai_manager.place_ai_bet(race, ai_player_id, bet_info)
-            if success:
-                # Update leaderboard after AI bet (balance decreased)
-                self.game_state.update_leaderboard(self.ai_manager.get_all_ai_users())
     
     async def process_payouts(self, payouts: dict):
+        # Track users who have been processed to avoid incrementing races_played multiple times
+        processed_users = set()
+        
         # Process payouts for human players
         for bet_type, user_payouts in payouts.items():
             for user_id, payout in user_payouts.items():
@@ -749,29 +830,91 @@ class WebSocketServer:
                 if user:
                     user.balance += payout
                     user.total_winnings += payout
-                    user.races_played += 1
+                    # Only increment races_played once per user per race
+                    if user_id not in processed_users:
+                        user.races_played += 1
+                        processed_users.add(user_id)
                 else:
                     # Check if it's an AI player
                     ai_player = self.ai_manager.ai_players.get(user_id)
                     if ai_player:
                         ai_player.user.balance += payout
                         ai_player.user.total_winnings += payout
-                        ai_player.user.races_played += 1
+                        # Only increment races_played once per user per race
+                        if user_id not in processed_users:
+                            ai_player.user.races_played += 1
+                            processed_users.add(user_id)
+        
+        # Increment races_played for users who participated but didn't win
+        race = self.game_state.current_race
+        if race:
+            # Check all bets in the race
+            for bets in race.betting_pool.winner_bets.values():
+                for bet in bets:
+                    if bet.user_id not in processed_users:
+                        user = self.game_state.get_user(bet.user_id)
+                        if user:
+                            user.races_played += 1
+                            processed_users.add(bet.user_id)
+                        else:
+                            # Check AI player
+                            ai_player = self.ai_manager.ai_players.get(bet.user_id)
+                            if ai_player:
+                                ai_player.user.races_played += 1
+                                processed_users.add(bet.user_id)
+            
+            # Check place bets
+            for bets in race.betting_pool.place_bets.values():
+                for bet in bets:
+                    if bet.user_id not in processed_users:
+                        user = self.game_state.get_user(bet.user_id)
+                        if user:
+                            user.races_played += 1
+                            processed_users.add(bet.user_id)
+                        else:
+                            # Check AI player
+                            ai_player = self.ai_manager.ai_players.get(bet.user_id)
+                            if ai_player:
+                                ai_player.user.races_played += 1
+                                processed_users.add(bet.user_id)
+            
+            # Check trifecta bets
+            for bet in race.betting_pool.trifecta_bets:
+                if bet.user_id not in processed_users:
+                    user = self.game_state.get_user(bet.user_id)
+                    if user:
+                        user.races_played += 1
+                        processed_users.add(bet.user_id)
+                    else:
+                        # Check AI player
+                        ai_player = self.ai_manager.ai_players.get(bet.user_id)
+                        if ai_player:
+                            ai_player.user.races_played += 1
+                            processed_users.add(bet.user_id)
         
         self.game_state.update_leaderboard(self.ai_manager.get_all_ai_users())
         
-        # Broadcast updated leaderboard
-        await self.broadcast({
-            "type": "leaderboard",
-            "leaders": [
-                {
-                    "username": user.username,
-                    "balance": user.balance,
-                    "total_winnings": user.total_winnings,
-                    "races_played": user.races_played
-                } for user in self.game_state.leaderboard
-            ]
-        })
+        # Send updated user objects to each connected client
+        for connection_id in list(self.connected_clients.keys()):
+            user_id = self.get_user_by_connection(connection_id)
+            if user_id:
+                user = self.game_state.get_user(user_id)
+                if user:
+                    current_user_rank = user.rank
+                    await self.send_to_client(connection_id, {
+                        "type": "leaderboard",
+                        "leaders": [
+                            {
+                                "username": leader.username,
+                                "balance": round(leader.balance, 2),
+                                "total_winnings": leader.total_winnings,
+                                "races_played": leader.races_played,
+                                "rank": leader.rank
+                            } for leader in self.game_state.leaderboard[:10]
+                        ],
+                        "current_user_rank": current_user_rank,
+                        "user": self.serialize_user(user)
+                    })
     
     async def start_server(self):
         logger.info(f"Starting WebSocket server on {self.host}:{self.port}")

@@ -23,6 +23,7 @@ class SaddleUpGame {
         
         // Game elements
         this.userName = document.getElementById('user-name');
+        this.userRank = document.getElementById('user-rank');
         this.userBalance = document.getElementById('user-balance');
         this.raceTitle = document.getElementById('race-title');
         this.racePhase = document.getElementById('race-phase');
@@ -110,6 +111,11 @@ class SaddleUpGame {
     }
     
     handleMessage(message) {
+        // Update user object if included in any message
+        if (message.user) {
+            this.updateUser(message.user);
+        }
+        
         switch (message.type) {
             case 'connection_established':
                 console.log('Connection established');
@@ -147,7 +153,7 @@ class SaddleUpGame {
                 break;
                 
             case 'leaderboard':
-                this.updateLeaderboard(message.leaders);
+                this.updateLeaderboard(message.leaders, message.current_user_rank);
                 break;
                 
             case 'error':
@@ -175,6 +181,7 @@ class SaddleUpGame {
         
         this.userName.textContent = this.user.username;
         this.updateBalance(this.user.balance);
+        this.updateUserRank(this.user.rank);
         
         // Request initial race state and leaderboard
         this.send({ type: 'get_race_state' });
@@ -182,6 +189,12 @@ class SaddleUpGame {
     }
     
     updateRaceState(race) {
+        // Clear bets for new race - check this BEFORE updating currentRace
+        if (!this.currentRace || race.id !== this.currentRace.id) {
+            this.currentRaceBets = [];
+            this.payoutInfo.innerHTML = '';
+        }
+        
         this.currentRace = race;
         this.raceTitle.textContent = `Race #${race.id}`;
         this.updatePhase(race.phase, race.time_remaining);
@@ -198,12 +211,6 @@ class SaddleUpGame {
             raceTrack.style.display = 'none';
             this.raceResults.classList.add('hidden');
             this.activeBets.classList.add('hidden');
-            
-            // Clear bets for new race
-            if (!this.currentRace || race.id !== this.currentRace.id) {
-                this.currentRaceBets = [];
-                this.payoutInfo.innerHTML = '';
-            }
         } else {
             raceTrack.style.display = 'block';
             this.raceResults.classList.add('hidden');
@@ -416,6 +423,12 @@ class SaddleUpGame {
             return;
         }
         
+        // Check if user already has a bet of this type
+        if (this.currentRaceBets.some(bet => bet.type === this.selectedBetType)) {
+            this.showError(`You can only place one ${this.selectedBetType} bet per race`);
+            return;
+        }
+        
         this.send({
             type: 'place_bet',
             bet_type: this.selectedBetType,
@@ -441,6 +454,12 @@ class SaddleUpGame {
         
         if (new Set(selection).size !== 3) {
             this.showError('Please select three different horses');
+            return;
+        }
+        
+        // Check if user already has a trifecta bet
+        if (this.currentRaceBets.some(bet => bet.type === 'trifecta')) {
+            this.showError('You can only place one trifecta bet per race');
             return;
         }
         
@@ -603,8 +622,10 @@ class SaddleUpGame {
         }
     }
     
-    updateLeaderboard(leaders) {
+    updateLeaderboard(leaders, currentUserRank) {
         this.leaderboardList.innerHTML = '';
+        
+        let userFoundInLeaderboard = false;
         
         leaders.forEach((leader, index) => {
             const item = document.createElement('div');
@@ -615,7 +636,51 @@ class SaddleUpGame {
                 <span class="leaderboard-balance">$${leader.balance.toFixed(2)}</span>
             `;
             this.leaderboardList.appendChild(item);
+            
+            // Update user rank if this is the current user
+            if (this.user && leader.username === this.user.username) {
+                const userRank = leader.rank || index + 1;
+                this.user.rank = userRank;  // Store rank in user object
+                this.updateUserRank(userRank);
+                userFoundInLeaderboard = true;
+            }
         });
+        
+        // If user is not in top 10, use the current_user_rank from backend or stored rank
+        if (this.user && !userFoundInLeaderboard) {
+            const rankToUse = currentUserRank || this.user.rank;
+            if (rankToUse) {
+                this.user.rank = rankToUse;  // Store rank in user object
+                this.updateUserRank(rankToUse);
+            } else {
+                this.updateUserRank(null);  // This will show "Rank #--"
+            }
+        }
+    }
+    
+    updateUser(userData) {
+        if (this.user) {
+            // Update existing user object
+            this.user = { ...this.user, ...userData };
+            
+            // Update UI elements
+            this.userName.textContent = this.user.username;
+            this.updateBalance(this.user.balance);
+            this.updateUserRank(this.user.rank);
+        }
+    }
+    
+    updateUserRank(rank) {
+        if (rank && rank <= 10) {
+            this.userRank.textContent = `Rank #${rank}`;
+            this.userRank.style.color = '#ffd700';
+        } else if (rank) {
+            this.userRank.textContent = `Rank #${rank}`;
+            this.userRank.style.color = '#ccc';
+        } else {
+            this.userRank.textContent = 'Rank #--';
+            this.userRank.style.color = '#999';
+        }
     }
     
     formatOdds(odds) {

@@ -133,16 +133,17 @@ All game settings can be configured via environment variables in `config/setting
 
 ### Betting Types
 1. **Winner** - Pick the horse that finishes 1st place
-2. **Place** - Pick a horse that finishes in top 3
+2. **Place** - Pick a horse that finishes in top 3 (pays maximum 1/3 of win odds)
 3. **Trifecta** - Pick exact order of 1st, 2nd, and 3rd place
 
 ### Advanced Odds System
 - **Enhanced stat-based odds** with expanded horse stat ranges (0.6-1.4) for realistic diversity
 - **Power-scaled probability** enhancement making favorites and longshots more distinct
 - **Dynamic adjustment** as bets are placed with 15% house edge maintained
+- **Realistic place odds** - Place odds calculated as maximum 1/3 of win odds for proper pari-mutuel betting
 - **Realistic odds distribution** creating proper favorites ($1.20-$2.50) to longshots ($10.00+)
 - **Visual color coding**: Blue (≤$1.50) → Green (≤$2.50) → Yellow (≤$4.00) → Orange (≤$8.00) → Red (>$8.00)
-- **Live updates** every 0.25 seconds during betting phase with $X.XX format display
+- **Live updates** every 1 second during betting phase with $X.XX format display
 
 ### Race Simulation
 - **Stat-based performance** - Horse stats determine racing ability
@@ -223,6 +224,8 @@ All game settings can be configured via environment variables in `config/setting
 
 ### Performance & Reliability
 - **Optimized broadcasting** - Pre-serialized messages with batched delivery
+- **Efficient rank updates** - Leaderboard calculations only during state changes, not during betting
+- **Limited leaderboard display** - Only top 10 users transmitted to prevent network overload
 - **Race condition prevention** - Atomic operations for AI player management
 - **Overflow protection** - Safe odds calculations with bounds checking
 - **Memory efficiency** - Automatic cleanup of disconnected players

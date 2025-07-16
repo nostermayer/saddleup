@@ -43,6 +43,7 @@ class User:
     id: str
     username: str
     balance: float = 10.0
+    rank: Optional[int] = None
     total_winnings: float = 0.0
     races_played: int = 0
     connected: bool = True
@@ -116,6 +117,13 @@ class Race:
     def get_initial_odds(self, horse_id: int, bet_type: BetType) -> float:
         """Calculate initial odds based on horse stats before any betting"""
         try:
+            # For place bets, calculate based on win odds
+            if bet_type == BetType.PLACE:
+                win_odds = self.get_initial_odds(horse_id, BetType.WINNER)
+                # Place odds should be at most 1/3 of win odds
+                place_odds = max(1.01, win_odds / 3.0)
+                return round(place_odds, 2)
+            
             horse_strength = self.get_horse_strength(horse_id)
             
             # Validate horse strength
@@ -148,9 +156,6 @@ class Race:
             if bet_type == BetType.WINNER:
                 # For winner bets, use enhanced probability
                 true_probability = enhanced_probability
-            elif bet_type == BetType.PLACE:
-                # For place bets (top 3), much higher chance
-                true_probability = min(0.85, enhanced_probability * 4.0)  # Cap at 85%
             else:  # Trifecta
                 # Trifecta odds are much longer - but not impossibly long
                 true_probability = enhanced_probability * 0.15
@@ -225,6 +230,11 @@ class Race:
             
             blended_odds = (pool_odds * 0.7) + (initial_odds * 0.3)
             
+            # For place bets, ensure they're at most 1/3 of win odds
+            if bet_type == BetType.PLACE:
+                win_odds = self.calculate_odds(horse_id, BetType.WINNER)
+                blended_odds = min(blended_odds, win_odds / 3.0)
+            
             # Final validation and bounds checking
             if not isinstance(blended_odds, (int, float)) or blended_odds != blended_odds:
                 return 2.0  # Fallback odds
@@ -261,9 +271,9 @@ class GameState:
             user for user in all_users 
             if (user.connected or user.id.startswith('ai_'))
         ]
-        
-        self.leaderboard = sorted(
-            eligible_users,
-            key=lambda x: x.balance,
-            reverse=True
-        )[:10]
+
+        eligible_users = sorted(eligible_users, key=lambda x: x.balance, reverse=True)
+        for i, user in enumerate(eligible_users):
+            user.rank = i + 1
+
+        self.leaderboard = eligible_users
