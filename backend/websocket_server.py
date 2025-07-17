@@ -573,7 +573,13 @@ class WebSocketServer:
                 if not race:
                     self.start_new_race()
                     continue
-                
+                # Send server status to discord every 10 races
+                if race.id % 10 == 1:
+                    await self.game_logger.log_server_status(
+                        status="online",
+                        player_count=len(self.game_state.users),
+                    )
+
                 # Betting phase
                 race.phase = RacePhase.BETTING
                 race.start_time = time.time()

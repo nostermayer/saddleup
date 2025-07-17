@@ -125,7 +125,7 @@ class GameLogger:
 
         self._send(data)
 
-    def log_server_status(self, status, player_count, uptime=None):
+    async def log_server_status(self, status, player_count, uptime=None):
         """Log server status updates"""
         color = 0x00FF00 if status == "online" else 0xFF0000
 
@@ -148,13 +148,12 @@ class GameLogger:
             ]
         }
 
-        self._send(data)
+        await self.async_send(data)
 
     def _send(self, data):
         """Send data to Discord webhook"""
         # Skip sending if not in production
         if not self.webhook_url:
-            logger.info(f"hook url is {self.webhook_url}")
             logger.info(
                 f"[DEV] Would send Discord notification: {data['embeds'][0]['title']}"
             )
@@ -173,7 +172,7 @@ class GameLogger:
     async def async_send(self, data):
         """Async version of send for use with asyncio"""
         # Skip sending if not in production
-        if not self.is_production:
+        if not self.webhook_url:
             logger.info(
                 f"[DEV] Would send Discord notification: {data['embeds'][0]['title']}"
             )
