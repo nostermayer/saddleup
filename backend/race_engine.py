@@ -128,11 +128,11 @@ class RaceEngine:
                             payouts['place'][bet.user_id] = 0
                         payouts['place'][bet.user_id] += round(bet.amount * place_odds, 2)
         
-        # Trifecta payouts (exact order of top 3)
+        # Trifecta payouts (box trifecta - any order of top 3)
         if len(race.finished_horses) >= 3:
-            winning_trifecta = [race.finished_horses[0].id, race.finished_horses[1].id, race.finished_horses[2].id]
+            winning_trifecta = {race.finished_horses[0].id, race.finished_horses[1].id, race.finished_horses[2].id}
             trifecta_pool = race.betting_pool.get_total_pool(BetType.TRIFECTA)
-            winning_bets = [bet for bet in race.betting_pool.trifecta_bets if bet.selection == winning_trifecta]
+            winning_bets = [bet for bet in race.betting_pool.trifecta_bets if set(bet.selection) == winning_trifecta]
             
             if winning_bets and trifecta_pool > 0:
                 # Apply 15% house edge

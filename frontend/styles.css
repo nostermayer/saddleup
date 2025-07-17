@@ -1,3 +1,40 @@
+:root {
+    /* Color Variables */
+    --primary-gold: #ffd700;
+    --dark-green: #1a3d1a;
+    --medium-green: #2c5530;
+    --track-green: #8fbc8f;
+    --error-red: #e74c3c;
+    --success-green: #27ae60;
+    --warning-orange: #f39c12;
+    --info-blue: #4a90e2;
+    
+    /* Odds Colors */
+    --odds-favorite: #4169E1;
+    --odds-strong: #32CD32;
+    --odds-moderate: #FFD700;
+    --odds-long: #FF8C00;
+    --odds-longshot: #DC143C;
+    
+    /* Spacing */
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+    --radius-round: 20px;
+    
+    /* Transitions */
+    --transition-fast: 0.1s ease;
+    --transition-standard: 0.3s ease;
+    --transition-slow: 0.5s ease;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -6,7 +43,7 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #2c5530, #1a3d1a);
+    background: linear-gradient(135deg, var(--medium-green), var(--dark-green));
     color: white;
     height: 100vh;
     overflow-x: hidden;
@@ -34,8 +71,8 @@ body {
 
 .login-container h1 {
     font-size: 3rem;
-    margin-bottom: 1rem;
-    color: #ffd700;
+    margin-bottom: var(--spacing-md);
+    color: var(--primary-gold);
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
@@ -96,7 +133,7 @@ body {
 .logo {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #ffd700;
+    color: var(--primary-gold);
 }
 
 .user-info {
@@ -106,10 +143,10 @@ body {
 }
 
 #user-balance {
-    background: #ffd700;
-    color: #1a3d1a;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
+    background: var(--primary-gold);
+    color: var(--dark-green);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-round);
     font-weight: bold;
 }
 
@@ -202,6 +239,7 @@ body {
     padding: 1rem;
     min-height: 600px;
     overflow: hidden;
+    display: none; /* Hidden by default, shown only during racing */
 }
 
 .track-lanes {
@@ -345,6 +383,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .horse-bet-btn {
@@ -362,7 +401,8 @@ body {
     transform: translateY(-2px);
 }
 
-.horse-bet-btn.selected {
+.horse-bet-btn.selected,
+.horse-btn.selected {
     background: #ffd700;
     color: #1a3d1a;
 }
@@ -506,29 +546,45 @@ body {
     opacity: 0.8;
 }
 
-/* Trifecta Betting */
-.trifecta-selection {
+.bet-instructions {
+    text-align: center;
+    color: #ccc;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Box Trifecta Betting */
+.trifecta-controls {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     align-items: center;
 }
 
-.trifecta-selection select {
-    padding: 0.8rem;
-    border-radius: 8px;
+.trifecta-selection-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.clear-btn {
+    background: #555;
+    color: #fff;
     border: none;
-    background: rgba(255,255,255,0.1);
-    color: white;
-    min-width: 200px;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.trifecta-selection option {
-    background: #1a3d1a;
-    color: white;
+.clear-btn:hover {
+    background: #666;
 }
 
-#place-trifecta-btn {
+.place-bet-btn {
     padding: 1rem 2rem;
     background: #ffd700;
     color: #1a3d1a;
@@ -539,9 +595,16 @@ body {
     transition: all 0.3s ease;
 }
 
-#place-trifecta-btn:hover {
+.place-bet-btn:hover:not(:disabled) {
     background: #ffed4e;
     transform: translateY(-2px);
+}
+
+.place-bet-btn:disabled {
+    background: #555;
+    color: #999;
+    cursor: not-allowed;
+    transform: none;
 }
 
 /* Race Results */

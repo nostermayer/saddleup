@@ -5,7 +5,7 @@ A real-time WebSocket-based horse racing gambling game built with Python backend
 ## Game Features
 
 - **20 horses per race** with hidden stats (speed, stamina, consistency) that determine realistic odds
-- **3 bet types**: Winner ($1), Place ($1), Trifecta ($1) with 15% house edge
+- **3 bet types**: Winner ($1), Place ($1), Box Trifecta ($1) with 15% house edge
 - **Color-coded horses**: Visual odds indicators using blue (favorites) to red (longshots) both in betting and racing
 - **Dynamic betting period** with real-time odds updates every 0.25 seconds
 - **Live race simulation** ending 1 second after third place finishes
@@ -49,6 +49,9 @@ saddleup/
 │   ├── race_engine.py      # Race simulation and payout calculation
 │   ├── websocket_server.py # WebSocket server and game loop
 │   ├── ai_players.py       # AI player management and betting logic
+│   ├── services.py         # Business logic services (betting, race, payout)
+│   ├── utils.py            # Utility functions and error handling
+│   ├── config.py           # Configuration management
 │   └── server.py           # Main server entry point
 ├── frontend/
 │   ├── index.html          # Main HTML interface
@@ -134,7 +137,7 @@ All game settings can be configured via environment variables in `config/setting
 ### Betting Types
 1. **Winner** - Pick the horse that finishes 1st place
 2. **Place** - Pick a horse that finishes in top 3 (pays maximum 1/3 of win odds)
-3. **Trifecta** - Pick exact order of 1st, 2nd, and 3rd place
+3. **Box Trifecta** - Pick 3 horses to finish in top 3 in any order (easier than exact trifecta)
 
 ### Advanced Odds System
 - **Enhanced stat-based odds** with expanded horse stat ranges (0.6-1.4) for realistic diversity
@@ -176,6 +179,7 @@ All game settings can be configured via environment variables in `config/setting
 
 // Place bet
 {type: "place_bet", bet_type: "winner", amount: 1.0, selection: [5]}
+{type: "place_bet", bet_type: "trifecta", amount: 1.0, selection: [5, 12, 8]}
 
 // Get race state
 {type: "get_race_state"}

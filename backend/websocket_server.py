@@ -660,7 +660,7 @@ class WebSocketServer:
                 if len(race.finished_horses) >= 3:
                     winning_trifecta = [race.finished_horses[0].id, race.finished_horses[1].id, race.finished_horses[2].id]
                     trifecta_pool = sum(bet.amount for bet in race.betting_pool.trifecta_bets)
-                    winning_bets = [bet for bet in race.betting_pool.trifecta_bets if bet.selection == winning_trifecta]
+                    winning_bets = [bet for bet in race.betting_pool.trifecta_bets if set(bet.selection) == set(winning_trifecta)]
                     trifecta_winners = len(winning_bets)
                     
                     trifecta_info = {

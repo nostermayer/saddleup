@@ -117,13 +117,6 @@ class Race:
     def get_initial_odds(self, horse_id: int, bet_type: BetType) -> float:
         """Calculate initial odds based on horse stats before any betting"""
         try:
-            # For place bets, calculate based on win odds
-            if bet_type == BetType.PLACE:
-                win_odds = self.get_initial_odds(horse_id, BetType.WINNER)
-                # Place odds should be at most 1/3 of win odds
-                place_odds = max(1.01, win_odds / 3.0)
-                return round(place_odds, 2)
-            
             horse_strength = self.get_horse_strength(horse_id)
             
             # Validate horse strength
@@ -156,9 +149,13 @@ class Race:
             if bet_type == BetType.WINNER:
                 # For winner bets, use enhanced probability
                 true_probability = enhanced_probability
-            else:  # Trifecta
-                # Trifecta odds are much longer - but not impossibly long
-                true_probability = enhanced_probability * 0.15
+            elif bet_type == BetType.PLACE:
+                # For place bets (top 3), much higher chance
+                true_probability = min(0.85, enhanced_probability * 4.0)  # Cap at 85%
+            else:  # Box Trifecta
+                # Box trifecta odds are lower than exact order but still challenging
+                # For box trifecta, we need horse to be in top 3 (any order)
+                true_probability = enhanced_probability * 0.8
             
             # Validate true probability
             if not isinstance(true_probability, (int, float)) or true_probability <= 0:
@@ -230,11 +227,6 @@ class Race:
             
             blended_odds = (pool_odds * 0.7) + (initial_odds * 0.3)
             
-            # For place bets, ensure they're at most 1/3 of win odds
-            if bet_type == BetType.PLACE:
-                win_odds = self.calculate_odds(horse_id, BetType.WINNER)
-                blended_odds = min(blended_odds, win_odds / 3.0)
-            
             # Final validation and bounds checking
             if not isinstance(blended_odds, (int, float)) or blended_odds != blended_odds:
                 return 2.0  # Fallback odds
@@ -276,4 +268,4 @@ class GameState:
         for i, user in enumerate(eligible_users):
             user.rank = i + 1
 
-        self.leaderboard = eligible_users
+        self.leaderboard = eligible_users[:10]

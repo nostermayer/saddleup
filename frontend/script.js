@@ -5,10 +5,11 @@ class SaddleUpGame {
         this.currentRace = null;
         this.selectedBetType = 'winner';
         this.selectedHorse = null;
-        this.trifectaSelection = [null, null, null];
+        this.trifectaSelection = [];
         
         this.initializeElements();
         this.setupEventListeners();
+        this.updateTrifectaDisplay(); // Initialize trifecta display
         this.connect();
     }
     
@@ -38,11 +39,8 @@ class SaddleUpGame {
         this.betTypes = document.querySelectorAll('.bet-type');
         this.singleBet = document.getElementById('single-bet');
         this.trifectaBet = document.getElementById('trifecta-bet');
-        this.trifectaSelects = [
-            document.getElementById('trifecta-1st'),
-            document.getElementById('trifecta-2nd'),
-            document.getElementById('trifecta-3rd')
-        ];
+        this.trifectaCount = document.getElementById('trifecta-count');
+        this.clearTrifectaBtn = document.getElementById('clear-trifecta-btn');
         this.placeTrifectaBtn = document.getElementById('place-trifecta-btn');
         
         // Leaderboard elements
@@ -79,6 +77,10 @@ class SaddleUpGame {
         // Trifecta betting
         this.placeTrifectaBtn.addEventListener('click', () => {
             this.placeTrifectaBet();
+        });
+        
+        this.clearTrifectaBtn.addEventListener('click', () => {
+            this.clearTrifectaSelection();
         });
         
         // Contact button
@@ -218,10 +220,8 @@ class SaddleUpGame {
         this.currentRace = race;
         this.raceTitle.textContent = `Race #${race.id}`;
         this.updatePhase(race.phase, race.time_remaining);
-        this.createTrack(race.horses);
-        this.updateBettingOptions(race.horses, race.odds);
         
-        // Show/hide track and results based on phase
+        // Show/hide track and results based on phase FIRST
         const raceTrack = document.querySelector('.race-track');
         if (race.phase === 'results') {
             raceTrack.style.display = 'none';
@@ -243,6 +243,10 @@ class SaddleUpGame {
                 this.activeBets.classList.add('hidden');
             }
         }
+        
+        // Create track and update betting options
+        this.createTrack(race.horses);
+        this.updateBettingOptions(race.horses, race.odds);
     }
     
     updatePhase(phase, timeRemaining) {
@@ -314,47 +318,99 @@ class SaddleUpGame {
     }
     
     updateBettingOptions(horses, odds) {
-        // Update single bet options (winner/place)
+        // Only recreate buttons if horses have changed
+        const existingButtons = this.horsesGrid.querySelectorAll('.horse-bet-btn');
+        const needsRecreation = existingButtons.length !== horses.length || 
+                               Array.from(existingButtons).some((btn, index) => 
+                                   parseInt(btn.dataset.horseId) !== horses[index].id
+                               );
+        
+        if (needsRecreation) {
+            this.createHorseButtons(horses, odds);
+        } else {
+            // Just update the odds without recreating buttons
+            this.updateBettingButtonOdds(odds);
+        }
+    }
+    
+    createHorseButtons(horses, odds) {
         this.horsesGrid.innerHTML = '';
         horses.forEach(horse => {
-            const btn = document.createElement('button');
-            btn.dataset.horseId = horse.id;
-            
-            const winnerOdds = odds[horse.id]?.winner || 2.0;
-            const placeOdds = odds[horse.id]?.place || 1.5;
-            
-            // Apply base class and odds-based color class
-            const oddsTier = this.getOddsTier(winnerOdds);
-            btn.className = `horse-bet-btn ${oddsTier}`;
-            
-            btn.innerHTML = `
-                <div class="horse-name">${horse.name}</div>
-                <div class="odds">
-                    Win: ${this.formatOdds(winnerOdds)}<br>
-                    Place: ${this.formatOdds(placeOdds)}
-                </div>
-            `;
-            
-            btn.addEventListener('click', () => {
-                this.selectHorse(horse.id, btn);
-            });
-            
+            const btn = this.createHorseButton(horse, odds);
             this.horsesGrid.appendChild(btn);
         });
+    }
+    
+    createHorseButton(horse, odds) {
+        const btn = document.createElement('button');
+        btn.dataset.horseId = horse.id;
         
-        // Update trifecta selects
-        this.trifectaSelects.forEach(select => {
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">Select Horse</option>';
-            
-            horses.forEach(horse => {
-                const option = document.createElement('option');
-                option.value = horse.id;
-                option.textContent = `#${horse.id} ${horse.name}`;
-                select.appendChild(option);
-            });
-            
-            select.value = currentValue;
+        const winnerOdds = odds[horse.id]?.winner || 2.0;
+        const placeOdds = odds[horse.id]?.place || 1.5;
+        const trifectaOdds = odds[horse.id]?.trifecta || 2.0;
+        
+        // Apply base class and odds-based color class
+        const oddsTier = this.getOddsTier(winnerOdds);
+        btn.className = `horse-bet-btn ${oddsTier}`;
+        
+        // Create structure that preserves event listeners
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'horse-name';
+        nameDiv.textContent = horse.name;
+        
+        const oddsDiv = document.createElement('div');
+        oddsDiv.className = 'odds';
+        
+        const winSpan = document.createElement('span');
+        winSpan.className = 'win-odds';
+        winSpan.textContent = `Win: ${this.formatOdds(winnerOdds)}`;
+        
+        const placeSpan = document.createElement('span');
+        placeSpan.className = 'place-odds';
+        placeSpan.textContent = `Place: ${this.formatOdds(placeOdds)}`;
+        
+        const trifectaSpan = document.createElement('span');
+        trifectaSpan.className = 'trifecta-odds';
+        trifectaSpan.textContent = `Trifecta: ${this.formatOdds(trifectaOdds)}`;
+        
+        oddsDiv.appendChild(winSpan);
+        oddsDiv.appendChild(document.createElement('br'));
+        oddsDiv.appendChild(placeSpan);
+        oddsDiv.appendChild(document.createElement('br'));
+        oddsDiv.appendChild(trifectaSpan);
+        
+        btn.appendChild(nameDiv);
+        btn.appendChild(oddsDiv);
+        
+        btn.addEventListener('click', () => {
+            this.selectHorse(horse.id, btn);
+        });
+        
+        return btn;
+    }
+    
+    updateBettingButtonOdds(odds) {
+        document.querySelectorAll('.horse-bet-btn').forEach(btn => {
+            const horseId = parseInt(btn.dataset.horseId);
+            if (odds[horseId]) {
+                const winnerOdds = odds[horseId].winner;
+                const placeOdds = odds[horseId].place;
+                const trifectaOdds = odds[horseId].trifecta || 2.0;
+                
+                // Update odds text without destroying event listeners
+                const winSpan = btn.querySelector('.win-odds');
+                const placeSpan = btn.querySelector('.place-odds');
+                const trifectaSpan = btn.querySelector('.trifecta-odds');
+                
+                if (winSpan) winSpan.textContent = `Win: ${this.formatOdds(winnerOdds)}`;
+                if (placeSpan) placeSpan.textContent = `Place: ${this.formatOdds(placeOdds)}`;
+                if (trifectaSpan) trifectaSpan.textContent = `Trifecta: ${this.formatOdds(trifectaOdds)}`;
+                
+                // Update color class based on new odds
+                const newOddsTier = this.getOddsTier(winnerOdds);
+                btn.className = btn.className.replace(/odds-\w+/g, '').trim();
+                btn.className += ` ${newOddsTier}`;
+            }
         });
     }
     
@@ -365,25 +421,7 @@ class SaddleUpGame {
         this.currentOdds = odds;
         
         // Update odds display in betting buttons
-        document.querySelectorAll('.horse-bet-btn').forEach(btn => {
-            const horseId = parseInt(btn.dataset.horseId);
-            const oddsEl = btn.querySelector('.odds');
-            if (oddsEl && odds[horseId]) {
-                const winnerOdds = odds[horseId].winner;
-                const placeOdds = odds[horseId].place;
-                
-                // Update odds text
-                oddsEl.innerHTML = `
-                    Win: ${this.formatOdds(winnerOdds)}<br>
-                    Place: ${this.formatOdds(placeOdds)}
-                `;
-                
-                // Update color class based on new odds
-                const newOddsTier = this.getOddsTier(winnerOdds);
-                btn.className = btn.className.replace(/odds-\w+/g, '').trim();
-                btn.className += ` ${newOddsTier}`;
-            }
-        });
+        this.updateBettingButtonOdds(odds);
         
         // Update racing horse colors based on new odds
         this.updateRacingHorseColors(odds);
@@ -408,23 +446,33 @@ class SaddleUpGame {
         
         // Clear selections
         this.selectedHorse = null;
-        this.trifectaSelection = [null, null, null];
+        this.trifectaSelection = [];
         this.clearSelections();
+        this.updateTrifectaDisplay();
     }
     
     selectHorse(horseId, btnElement) {
-        if (this.selectedBetType === 'trifecta') return;
+        if (this.selectedBetType === 'trifecta') {
+            this.handleTrifectaSelection(horseId, btnElement);
+            return;
+        }
         
+        this.handleSingleBetSelection(horseId, btnElement);
+    }
+    
+    handleSingleBetSelection(horseId, btnElement) {
         this.selectedHorse = horseId;
         
         // Update visual selection
-        document.querySelectorAll('.horse-bet-btn').forEach(btn => {
-            btn.classList.remove('selected');
-        });
+        this.clearAllSelections();
         btnElement.classList.add('selected');
         
         // Place bet immediately
         this.placeBet();
+    }
+    
+    handleTrifectaSelection(horseId, btnElement) {
+        this.selectTrifectaHorse(horseId, btnElement);
     }
     
     placeBet() {
@@ -460,20 +508,45 @@ class SaddleUpGame {
         this.clearSelections();
     }
     
-    placeTrifectaBet() {
-        const selection = [
-            parseInt(this.trifectaSelects[0].value),
-            parseInt(this.trifectaSelects[1].value),
-            parseInt(this.trifectaSelects[2].value)
-        ];
+    selectTrifectaHorse(horseId, btnElement) {
+        if (this.selectedBetType !== 'trifecta') return;
         
-        if (selection.some(val => !val)) {
-            this.showError('Please select all three horses');
-            return;
+        const horseIdNum = parseInt(horseId);
+        
+        // Check if horse is already selected
+        if (this.trifectaSelection.includes(horseIdNum)) {
+            // Remove from selection
+            this.trifectaSelection = this.trifectaSelection.filter(id => id !== horseIdNum);
+            btnElement.classList.remove('selected');
+        } else {
+            // Add to selection if we have room
+            if (this.trifectaSelection.length < 3) {
+                this.trifectaSelection.push(horseIdNum);
+                btnElement.classList.add('selected');
+            } else {
+                this.showError('You can only select 3 horses for box trifecta');
+                return;
+            }
         }
         
-        if (new Set(selection).size !== 3) {
-            this.showError('Please select three different horses');
+        this.updateTrifectaDisplay();
+    }
+    
+    clearTrifectaSelection() {
+        this.trifectaSelection = [];
+        this.clearAllSelections();
+        this.updateTrifectaDisplay();
+    }
+    
+    updateTrifectaDisplay() {
+        const count = this.trifectaSelection.length;
+        this.trifectaCount.textContent = `${count}/3 horses selected`;
+        this.placeTrifectaBtn.disabled = count !== 3;
+    }
+    
+    placeTrifectaBet() {
+        if (this.trifectaSelection.length !== 3) {
+            this.showError('Please select exactly 3 horses');
             return;
         }
         
@@ -487,14 +560,21 @@ class SaddleUpGame {
             type: 'place_bet',
             bet_type: 'trifecta',
             amount: 1.0,
-            selection: selection
+            selection: this.trifectaSelection
         });
         
         // Clear trifecta selection
-        this.trifectaSelects.forEach(select => select.value = '');
+        this.clearTrifectaSelection();
     }
     
     clearSelections() {
+        this.clearAllSelections();
+        // Also clear trifecta selections
+        this.trifectaSelection = [];
+        this.updateTrifectaDisplay();
+    }
+    
+    clearAllSelections() {
         document.querySelectorAll('.horse-bet-btn').forEach(btn => {
             btn.classList.remove('selected');
         });
@@ -537,9 +617,9 @@ class SaddleUpGame {
             const trifectaSection = document.createElement('div');
             trifectaSection.className = 'trifecta-section';
             trifectaSection.innerHTML = `
-                <h4 style="color: #ffd700; margin: 1.5rem 0 1rem 0;">🎯 Trifecta Results</h4>
+                <h4 style="color: #ffd700; margin: 1.5rem 0 1rem 0;">🎯 Box Trifecta Results</h4>
                 <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-                    <div>Winning Order: ${trifectaInfo.winning_combination.join('-')}</div>
+                    <div>Winning Horses (any order): ${trifectaInfo.winning_combination.join('-')}</div>
                     <div>Total Pool: $${trifectaInfo.total_pool.toFixed(2)}</div>
                     <div>Winners: ${trifectaInfo.winners_count}</div>
                     ${trifectaInfo.payout_per_dollar > 0 ? 
@@ -565,7 +645,7 @@ class SaddleUpGame {
                 let betsHtml = '';
                 winner.bets.forEach(bet => {
                     if (bet.type === 'trifecta') {
-                        betsHtml += `<div class="bet-detail">Trifecta: ${bet.horse_names.join('-')} ($${bet.amount.toFixed(2)})</div>`;
+                        betsHtml += `<div class="bet-detail">Box Trifecta: ${bet.horse_names.join('-')} ($${bet.amount.toFixed(2)})</div>`;
                     } else {
                         betsHtml += `<div class="bet-detail">${bet.type.charAt(0).toUpperCase() + bet.type.slice(1)}: ${bet.horse_name} ($${bet.amount.toFixed(2)})</div>`;
                     }
