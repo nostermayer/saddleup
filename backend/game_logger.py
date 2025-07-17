@@ -11,17 +11,18 @@ class GameLogger:
     def __init__(self):
         # Retrieve webhook URL from environment variable
         self.webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+        self.is_production = os.getenv("ENVIRONMENT") == "production"
 
         if not self.webhook_url:
             logger.info(
                 "🚨 Warning: DISCORD_WEBHOOK_URL environment variable not set. Discord notifications will be disabled."
             )
         else:
-            # Check if we're in production
-            self.is_production = os.getenv("ENVIRONMENT") == "production"
             logger.info(f"Webhook URL loaded successfully - {self.webhook_url}")
 
-        if not self.is_production:
+        if not self.webhook_url:
+            logger.info("🔧 Development mode: Discord notifications disabled")
+        elif not self.is_production:
             logger.info(
                 "🔧 Development mode: Discord notifications will be sent to dev webhook."
             )
