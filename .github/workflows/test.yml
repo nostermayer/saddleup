@@ -1,0 +1,52 @@
+name: Run All Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12.3'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+        
+    - name: Find and run all test files
+      run: |
+        echo "Finding all Python test files..."
+        find . -name "*_test.py" -type f | head -20
+        
+        echo "Running all tests with pytest..."
+        python -m pytest $(find . -name "*_test.py") -v --tb=short
+        
+    - name: Generate test report
+      run: |
+        echo "All tests completed successfully!"
+        find . -name "*_test.py" -type f | wc -l | xargs echo "Total test files found:"
+
+    - name: Run tests with coverage
+      run: |
+        python -m pytest $(find . -name "*_test.py") --cov=. --cov-report=html --cov-report=term-missing
+
+    - name: Install linting tools
+      run: pip install flake8 black
+
+    - name: Run linting
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check .
