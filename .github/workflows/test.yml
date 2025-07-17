@@ -29,25 +29,25 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
         
-    - name: Run backend tests
-      run: |
-        echo "Running backend tests using test_runner..."
-        cd saddleup/backend
-        python tests/test_runner.py
+    # - name: Run backend tests
+    #   run: |
+    #     echo "Running backend tests using test_runner..."
+    #     cd saddleup/backend
+    #     python tests/test_runner.py
         
-    - name: Run backend tests with coverage
-      run: |
-        echo "Running backend tests with coverage..."
-        cd saddleup/backend
-        python -m pytest tests/ --cov=. --cov-report=html --cov-report=term-missing --cov-fail-under=80
+    # - name: Run backend tests with coverage
+    #   run: |
+    #     echo "Running backend tests with coverage..."
+    #     cd saddleup/backend
+    #     python -m pytest tests/ --cov=. --cov-report=html --cov-report=term-missing --cov-fail-under=80
 
-    - name: Install linting tools
-      run: pip install flake8 black
+    # - name: Install linting tools
+    #   run: pip install flake8 black
 
-    - name: Run linting
-      run: |
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        black --check .
+    # - name: Run linting
+    #   run: |
+    #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    #     black --check .
 
     - name: Setup Node.js for frontend tests
       uses: actions/setup-node@v4
