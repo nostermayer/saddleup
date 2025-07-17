@@ -1,13 +1,16 @@
 name: Deploy to DigitalOcean
+
 on:
   push:
     branches: [ master ]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.5
         with:
@@ -17,54 +20,153 @@ jobs:
           script: |
             cd /home/saddleup/saddleup
             
-            # Show current frontend file timestamps BEFORE git pull
-            echo "=== BEFORE GIT PULL ==="
-            ls -la frontend/
+            # Show current state
+            echo "=== DEPLOYMENT STARTED ==="
+            echo "Current directory: $(pwd)"
             echo "Current git commit:"
             git rev-parse HEAD
+            echo "Git status:"
+            git status --porcelain
             
-            # Pull latest changes
-            git pull origin master
+            # Backup any local changes and force clean pull
+            echo "=== PREPARING FOR CLEAN PULL ==="
             
-            # Show frontend file timestamps AFTER git pull
-            echo "=== AFTER GIT PULL ==="
-            ls -la frontend/
+            # Stash any local changes
+            if [[ -n $(git status --porcelain) ]]; then
+              echo "Local changes detected, stashing..."
+              git stash push -m "Auto-stash before deployment $(date)"
+            fi
+            
+            # Fetch latest changes
+            echo "Fetching latest changes..."
+            git fetch origin master
+            
+            # Force reset to match remote (this ensures clean state)
+            echo "Resetting to remote master..."
+            git reset --hard origin/master
+            
+            # Clean any untracked files
+            git clean -fd
+            
+            # Verify the pull worked
+            echo "=== AFTER GIT OPERATIONS ==="
             echo "New git commit:"
             git rev-parse HEAD
+            echo "Git status:"
+            git status --porcelain
             
-            # Check if files actually changed
-            echo "=== GIT DIFF CHECK ==="
-            git diff HEAD~1 HEAD --name-only
+            # Show what changed in this deployment
+            echo "=== DEPLOYMENT CHANGES ==="
+            git log --oneline -5
             
-            # Update backend
+            # Update backend dependencies
+            echo "=== UPDATING BACKEND ==="
             source venv/bin/activate
-            pip install -r requirements.txt
+            pip install -r requirements.txt --quiet
             
-            # Fix permissions
+            # Set proper file permissions
+            echo "=== SETTING PERMISSIONS ==="
+            # Use NOPASSWD sudo or configure sudoers properly
             sudo chown -R www-data:www-data /home/saddleup/saddleup/frontend/
             sudo chmod -R 755 /home/saddleup/saddleup/frontend/
             
-            # Check nginx configuration
-            echo "=== NGINX CONFIG ==="
-            sudo nginx -t
-            grep -n "root\|server_name" /etc/nginx/sites-enabled/*
+            # Verify permissions are correct
+            echo "Frontend directory permissions:"
+            ls -la /home/saddleup/saddleup/frontend/
             
-            # Check if nginx can access files
+            # Test nginx access
             echo "=== NGINX ACCESS TEST ==="
-            sudo -u www-data test -r /home/saddleup/saddleup/frontend/index.html && echo "nginx CAN read index.html" || echo "nginx CANNOT read index.html"
+            if sudo -u www-data test -r /home/saddleup/saddleup/frontend/index.html; then
+              echo "✅ nginx CAN read index.html"
+            else
+              echo "❌ nginx CANNOT read index.html"
+              echo "Attempting to fix permissions..."
+              sudo chown -R www-data:www-data /home/saddleup/saddleup/frontend/
+              sudo chmod -R 755 /home/saddleup/saddleup/frontend/
+              # Test again
+              if sudo -u www-data test -r /home/saddleup/saddleup/frontend/index.html; then
+                echo "✅ Fixed! nginx can now read index.html"
+              else
+                echo "❌ Still cannot read - manual intervention needed"
+                exit 1
+              fi
+            fi
             
-            # Clear any potential caches
-            sudo rm -rf /var/cache/nginx/*
+            # Check nginx configuration
+            echo "=== NGINX CONFIG CHECK ==="
+            if sudo nginx -t; then
+              echo "✅ Nginx configuration is valid"
+            else
+              echo "❌ Nginx configuration error - stopping deployment"
+              exit 1
+            fi
             
-            # Restart services with status check
+            # Show relevant nginx config
+            echo "Nginx configuration for this site:"
+            grep -n "root\|server_name" /etc/nginx/sites-enabled/* | grep -v default || echo "No custom nginx config found"
+            
+            # Clear nginx cache
+            echo "=== CLEARING CACHES ==="
+            sudo rm -rf /var/cache/nginx/* 2>/dev/null || true
+            
+            # Restart services with proper error handling
             echo "=== RESTARTING SERVICES ==="
-            sudo systemctl restart saddleup
-            sudo systemctl status saddleup --no-pager -l
             
-            sudo systemctl restart nginx
-            sudo systemctl status nginx --no-pager -l
+            # Restart backend service
+            echo "Restarting backend service..."
+            if sudo systemctl restart saddleup; then
+              echo "✅ Backend service restarted successfully"
+            else
+              echo "❌ Backend service restart failed"
+              sudo systemctl status saddleup --no-pager -l
+              exit 1
+            fi
+            
+            # Check backend service status
+            if sudo systemctl is-active --quiet saddleup; then
+              echo "✅ Backend service is running"
+            else
+              echo "❌ Backend service is not running"
+              sudo systemctl status saddleup --no-pager -l
+              exit 1
+            fi
+            
+            # Restart nginx
+            echo "Restarting nginx..."
+            if sudo systemctl restart nginx; then
+              echo "✅ Nginx restarted successfully"
+            else
+              echo "❌ Nginx restart failed"
+              sudo systemctl status nginx --no-pager -l
+              exit 1
+            fi
+            
+            # Check nginx status
+            if sudo systemctl is-active --quiet nginx; then
+              echo "✅ Nginx is running"
+            else
+              echo "❌ Nginx is not running"
+              sudo systemctl status nginx --no-pager -l
+              exit 1
+            fi
+            
+            # Final verification
+            echo "=== FINAL VERIFICATION ==="
+            echo "Backend service status:"
+            sudo systemctl status saddleup --no-pager -l --lines=3
+            echo ""
+            echo "Nginx service status:"
+            sudo systemctl status nginx --no-pager -l --lines=3
+            echo ""
+            
+            # Test if files are accessible
+            echo "File accessibility test:"
+            sudo -u www-data test -r /home/saddleup/saddleup/frontend/index.html && echo "✅ index.html accessible" || echo "❌ index.html not accessible"
+            sudo -u www-data test -r /home/saddleup/saddleup/frontend/script.js && echo "✅ script.js accessible" || echo "❌ script.js not accessible"
+            sudo -u www-data test -r /home/saddleup/saddleup/frontend/styles.css && echo "✅ styles.css accessible" || echo "❌ styles.css not accessible"
             
             echo "=== DEPLOYMENT COMPLETE! ==="
+            echo "✅ Deployment completed successfully at $(date)"
             echo "Frontend served from: /home/saddleup/saddleup/frontend/"
             echo "Backend service: saddleup"
-            echo "Timestamp: $(date)"
+            echo "Current commit: $(git rev-parse HEAD)"
