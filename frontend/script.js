@@ -40,6 +40,7 @@ class SaddleUpGame {
         this.singleBet = document.getElementById('single-bet');
         this.trifectaBet = document.getElementById('trifecta-bet');
         this.trifectaCount = document.getElementById('trifecta-count');
+        this.mysteryTrifectaBtn = document.getElementById('mystery-trifecta-btn');
         this.clearTrifectaBtn = document.getElementById('clear-trifecta-btn');
         this.placeTrifectaBtn = document.getElementById('place-trifecta-btn');
         
@@ -77,6 +78,10 @@ class SaddleUpGame {
         // Trifecta betting
         this.placeTrifectaBtn.addEventListener('click', () => {
             this.placeTrifectaBet();
+        });
+        
+        this.mysteryTrifectaBtn.addEventListener('click', () => {
+            this.selectMysteryTrifecta();
         });
         
         this.clearTrifectaBtn.addEventListener('click', () => {
@@ -171,6 +176,7 @@ class SaddleUpGame {
             case 'bet_placed':
                 this.updateBalance(message.new_balance);
                 this.addBetToCurrentRace(message.bet);
+                this.updateHorseGlowEffects();
                 this.showSuccess('Bet placed successfully!');
                 break;
                 
@@ -215,6 +221,10 @@ class SaddleUpGame {
         if (!this.currentRace || race.id !== this.currentRace.id) {
             this.currentRaceBets = [];
             this.payoutInfo.innerHTML = '';
+            // Clear trifecta selections for new race
+            this.trifectaSelection = [];
+            this.clearAllSelections();
+            this.updateTrifectaDisplay();
         }
         
         this.currentRace = race;
@@ -274,8 +284,16 @@ class SaddleUpGame {
         const bettingPanel = document.querySelector('.betting-panel');
         if (phase === 'betting') {
             bettingPanel.style.display = 'block';
+            // Clear any lingering trifecta selections when betting starts
+            this.trifectaSelection = [];
+            this.clearAllSelections();
+            this.updateTrifectaDisplay();
         } else {
             bettingPanel.style.display = 'none';
+            // Clear horse glow effects when not in betting phase
+            if (phase === 'results') {
+                this.clearHorseGlowEffects();
+            }
         }
     }
     
@@ -292,8 +310,12 @@ class SaddleUpGame {
                 oddsTier = this.getOddsTier(this.currentOdds[horse.id].winner);
             }
             
+            // Check if this horse is in player's bets
+            const isPlayerBet = this.isHorseInPlayerBets(horse.id);
+            const playerBetClass = isPlayerBet ? 'player-bet' : '';
+            
             lane.innerHTML = `
-                <div class="horse ${oddsTier}" id="horse-${horse.id}" style="left: ${horse.position}%">
+                <div class="horse ${oddsTier} ${playerBetClass}" id="horse-${horse.id}" style="left: ${horse.position}%">
                     ${horse.id}
                 </div>
                 <div class="horse-info">
@@ -301,6 +323,19 @@ class SaddleUpGame {
                 </div>
             `;
             this.trackLanes.appendChild(lane);
+        });
+    }
+    
+    isHorseInPlayerBets(horseId) {
+        // Check if the horse is in any of the player's current race bets
+        return this.currentRaceBets.some(bet => {
+            if (bet.type === 'trifecta') {
+                // For trifecta bets, check if horse is in the selection array
+                return bet.selection && bet.selection.includes(horseId);
+            } else {
+                // For winner/place bets, check if horse matches the single selection
+                return bet.selection && bet.selection[0] === horseId;
+            }
         });
     }
     
@@ -312,6 +347,11 @@ class SaddleUpGame {
                 
                 if (horse.finished) {
                     horseEl.style.background = '#ffd700';
+                }
+                
+                // Ensure player bet glow effect is maintained during race
+                if (this.isHorseInPlayerBets(horse.id) && !horseEl.classList.contains('player-bet')) {
+                    horseEl.classList.add('player-bet');
                 }
             }
         });
@@ -347,7 +387,6 @@ class SaddleUpGame {
         
         const winnerOdds = odds[horse.id]?.winner || 2.0;
         const placeOdds = odds[horse.id]?.place || 1.5;
-        const trifectaOdds = odds[horse.id]?.trifecta || 2.0;
         
         // Apply base class and odds-based color class
         const oddsTier = this.getOddsTier(winnerOdds);
@@ -369,15 +408,9 @@ class SaddleUpGame {
         placeSpan.className = 'place-odds';
         placeSpan.textContent = `Place: ${this.formatOdds(placeOdds)}`;
         
-        const trifectaSpan = document.createElement('span');
-        trifectaSpan.className = 'trifecta-odds';
-        trifectaSpan.textContent = `Trifecta: ${this.formatOdds(trifectaOdds)}`;
-        
         oddsDiv.appendChild(winSpan);
         oddsDiv.appendChild(document.createElement('br'));
         oddsDiv.appendChild(placeSpan);
-        oddsDiv.appendChild(document.createElement('br'));
-        oddsDiv.appendChild(trifectaSpan);
         
         btn.appendChild(nameDiv);
         btn.appendChild(oddsDiv);
@@ -395,16 +428,13 @@ class SaddleUpGame {
             if (odds[horseId]) {
                 const winnerOdds = odds[horseId].winner;
                 const placeOdds = odds[horseId].place;
-                const trifectaOdds = odds[horseId].trifecta || 2.0;
                 
                 // Update odds text without destroying event listeners
                 const winSpan = btn.querySelector('.win-odds');
                 const placeSpan = btn.querySelector('.place-odds');
-                const trifectaSpan = btn.querySelector('.trifecta-odds');
                 
                 if (winSpan) winSpan.textContent = `Win: ${this.formatOdds(winnerOdds)}`;
                 if (placeSpan) placeSpan.textContent = `Place: ${this.formatOdds(placeOdds)}`;
-                if (trifectaSpan) trifectaSpan.textContent = `Trifecta: ${this.formatOdds(trifectaOdds)}`;
                 
                 // Update color class based on new odds
                 const newOddsTier = this.getOddsTier(winnerOdds);
@@ -535,6 +565,42 @@ class SaddleUpGame {
     clearTrifectaSelection() {
         this.trifectaSelection = [];
         this.clearAllSelections();
+        this.updateTrifectaDisplay();
+    }
+    
+    selectMysteryTrifecta() {
+        // Only work if trifecta bet type is selected and we have horses
+        if (this.selectedBetType !== 'trifecta' || !this.currentRace || !this.currentRace.horses) {
+            return;
+        }
+        
+        // Clear current selections
+        this.clearTrifectaSelection();
+        
+        // Get all available horse IDs
+        const availableHorses = this.currentRace.horses.map(horse => horse.id);
+        
+        // Randomly select 3 different horses
+        const selectedHorses = [];
+        const horsesCopy = [...availableHorses]; // Create a copy to avoid modifying original
+        
+        for (let i = 0; i < 3 && horsesCopy.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * horsesCopy.length);
+            const selectedHorse = horsesCopy.splice(randomIndex, 1)[0];
+            selectedHorses.push(selectedHorse);
+        }
+        
+        // Apply the selections
+        selectedHorses.forEach(horseId => {
+            this.trifectaSelection.push(horseId);
+            
+            // Find and highlight the corresponding button
+            const button = document.querySelector(`[data-horse-id="${horseId}"]`);
+            if (button) {
+                button.classList.add('selected');
+            }
+        });
+        
         this.updateTrifectaDisplay();
     }
     
@@ -805,9 +871,41 @@ class SaddleUpGame {
             const horseEl = document.getElementById(`horse-${horseId}`);
             if (horseEl && odds[horseId].winner) {
                 const newOddsTier = this.getOddsTier(odds[horseId].winner);
+                const isPlayerBet = horseEl.classList.contains('player-bet');
+                
+                // Update odds color but preserve player-bet class
                 horseEl.className = horseEl.className.replace(/odds-\w+/g, '').trim();
                 horseEl.className += ` ${newOddsTier}`;
+                
+                // Restore player-bet class if it was there
+                if (isPlayerBet && !horseEl.classList.contains('player-bet')) {
+                    horseEl.classList.add('player-bet');
+                }
             }
+        });
+    }
+    
+    updateHorseGlowEffects() {
+        // Update glow effects for all horses based on current bets
+        if (!this.currentRace) return;
+        
+        this.currentRace.horses.forEach(horse => {
+            const horseEl = document.getElementById(`horse-${horse.id}`);
+            if (horseEl) {
+                const isPlayerBet = this.isHorseInPlayerBets(horse.id);
+                if (isPlayerBet && !horseEl.classList.contains('player-bet')) {
+                    horseEl.classList.add('player-bet');
+                } else if (!isPlayerBet && horseEl.classList.contains('player-bet')) {
+                    horseEl.classList.remove('player-bet');
+                }
+            }
+        });
+    }
+    
+    clearHorseGlowEffects() {
+        // Remove glow effects from all horses
+        document.querySelectorAll('.horse.player-bet').forEach(horseEl => {
+            horseEl.classList.remove('player-bet');
         });
     }
     
