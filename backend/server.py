@@ -5,9 +5,19 @@ import sys
 import os
 
 # Add parent directory to path to import config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
 
-from config.settings import *
+try:
+    from config.settings import *
+except ImportError:
+    # Fallback to local config if import fails
+    WEBSOCKET_HOST = 'localhost'
+    WEBSOCKET_PORT = 8765
+    LOG_LEVEL = 'INFO'
+    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    MAX_CONCURRENT_USERS = 1000
+
 from websocket_server import WebSocketServer
 
 # Configure logging
