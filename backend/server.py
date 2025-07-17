@@ -3,6 +3,9 @@ import asyncio
 import logging
 import sys
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # This loads the variables from .env into os.environ
 
 # Add parent directory to path to import config
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

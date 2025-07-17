@@ -16,6 +16,9 @@
     --odds-long: #FF8C00;
     --odds-longshot: #DC143C;
     
+    /* Selection Color */
+    --selection-green: #00ff41;
+    
     /* Spacing */
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
@@ -302,6 +305,23 @@ body {
     border: 2px solid #DC143C;
 }
 
+/* Player's bet horses glow effect */
+.horse.player-bet {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 25px rgba(255, 215, 0, 0.6), 0 0 35px rgba(255, 215, 0, 0.4);
+    border: 3px solid var(--primary-gold);
+    animation: pulse-glow 1.5s ease-in-out infinite alternate;
+    z-index: 20;
+}
+
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 25px rgba(255, 215, 0, 0.6), 0 0 35px rgba(255, 215, 0, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 1), 0 0 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.6);
+    }
+}
+
 .horse-info {
     position: absolute;
     left: 40px;
@@ -381,19 +401,20 @@ body {
 
 .horses-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
 
 .horse-bet-btn {
-    padding: 1rem;
+    padding: 0.75rem;
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.3);
     color: white;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-standard);
+    text-align: center;
 }
 
 .horse-bet-btn:hover {
@@ -403,8 +424,9 @@ body {
 
 .horse-bet-btn.selected,
 .horse-btn.selected {
-    background: #ffd700;
-    color: #1a3d1a;
+    border: 3px solid var(--selection-green);
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    transform: scale(1.02);
 }
 
 /* Odds-based color scaling */
@@ -538,12 +560,14 @@ body {
 
 .horse-name {
     font-weight: bold;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
 }
 
 .odds {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     opacity: 0.8;
+    line-height: 1.2;
 }
 
 .bet-instructions {
@@ -577,11 +601,28 @@ body {
     border-radius: 6px;
     font-size: 0.8rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-standard);
 }
 
 .clear-btn:hover {
     background: #666;
+}
+
+.mystery-btn {
+    background: linear-gradient(135deg, #8e44ad, #9b59b6);
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all var(--transition-standard);
+    margin-right: 0.5rem;
+}
+
+.mystery-btn:hover {
+    background: linear-gradient(135deg, #9b59b6, #af7ac5);
+    transform: translateY(-1px);
 }
 
 .place-bet-btn {
@@ -731,9 +772,15 @@ body {
 .active-bets {
     background: rgba(0,0,0,0.3);
     border-radius: 10px;
-    padding: 1.5rem;
+    padding: 1rem;
     margin: 1rem 0;
     border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+/* Active bets in sidebar styling */
+.leaderboard-sidebar .active-bets {
+    margin: 1.5rem 0 1rem 0;
+    padding: 1rem;
 }
 
 .active-bets h4 {
@@ -741,6 +788,12 @@ body {
     margin-bottom: 1rem;
     text-align: center;
     font-size: 1.1rem;
+}
+
+/* Sidebar active bets header */
+.leaderboard-sidebar .active-bets h4 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .bet-item {
@@ -752,6 +805,13 @@ body {
     background: rgba(255,255,255,0.1);
     border-radius: 8px;
     border-left: 4px solid #4a90e2;
+}
+
+/* Sidebar bet items */
+.leaderboard-sidebar .bet-item {
+    padding: 0.6rem 0.75rem;
+    margin: 0.4rem 0;
+    font-size: 0.9rem;
 }
 
 .bet-info {
@@ -921,7 +981,21 @@ body {
     }
     
     .horses-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.5rem;
+    }
+    
+    .horse-bet-btn {
+        padding: 0.5rem;
+    }
+    
+    .horse-name {
+        font-size: 0.8rem;
+        margin-bottom: 0.2rem;
+    }
+    
+    .odds {
+        font-size: 0.7rem;
     }
     
     .game-container {
@@ -953,6 +1027,11 @@ body {
     .active-bets {
         padding: 1rem;
         margin: 0.5rem 0;
+    }
+    
+    .leaderboard-sidebar .active-bets {
+        margin: 1rem 0;
+        padding: 0.75rem;
     }
     
     .bet-item {

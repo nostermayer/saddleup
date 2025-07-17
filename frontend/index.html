@@ -53,13 +53,6 @@
                         <div class="finish-line"></div>
                     </div>
 
-                    <!-- Active Bets Display -->
-                    <div id="active-bets" class="active-bets hidden">
-                        <h4>Your Bets This Race</h4>
-                        <div id="bets-list"></div>
-                    </div>
-
-
                     <!-- Betting Panel -->
                     <div class="betting-panel">
                         <h3>Place Your Bets</h3>
@@ -78,7 +71,6 @@
                         <div class="betting-options">
                             <!-- Winner/Place Betting -->
                             <div id="single-bet" class="bet-section active">
-                                <p class="bet-instructions">Select a horse to bet on:</p>
                             </div>
 
                             <!-- Box Trifecta Betting -->
@@ -87,6 +79,7 @@
                                 <div class="trifecta-controls">
                                     <div class="trifecta-selection-info">
                                         <span id="trifecta-count">0/3 horses selected</span>
+                                        <button id="mystery-trifecta-btn" class="mystery-btn">🎲 Mystery Trifecta</button>
                                         <button id="clear-trifecta-btn" class="clear-btn">Clear Selections</button>
                                     </div>
                                     <button id="place-trifecta-btn" class="place-bet-btn" disabled>Place Box Trifecta Bet</button>
@@ -107,6 +100,12 @@
                 <div class="leaderboard-sidebar">
                     <h3>🏆 Leaderboard</h3>
                     <div id="leaderboard-list"></div>
+                    
+                    <!-- Active Bets Display -->
+                    <div id="active-bets" class="active-bets hidden">
+                        <h4>🎯 Your Bets This Race</h4>
+                        <div id="bets-list"></div>
+                    </div>
                     
                     <!-- Odds Legend -->
                     <div class="odds-legend">
