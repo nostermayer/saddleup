@@ -28,6 +28,11 @@ jobs:
             echo "Git status:"
             git status --porcelain
             
+            # Fix file permissions BEFORE any git operations
+            echo "=== FIXING FILE PERMISSIONS FOR GIT ==="
+            echo "Changing ownership back to saddleup user for git operations..."
+            sudo chown -R saddleup:saddleup /home/saddleup/saddleup/
+            
             # Backup any local changes and force clean pull
             echo "=== PREPARING FOR CLEAN PULL ==="
             
@@ -64,9 +69,8 @@ jobs:
             source venv/bin/activate
             pip install -r requirements.txt --quiet
             
-            # Set proper file permissions
-            echo "=== SETTING PERMISSIONS ==="
-            # Use NOPASSWD sudo or configure sudoers properly
+            # Set proper file permissions for web server
+            echo "=== SETTING WEB SERVER PERMISSIONS ==="
             sudo chown -R www-data:www-data /home/saddleup/saddleup/frontend/
             sudo chmod -R 755 /home/saddleup/saddleup/frontend/
             
@@ -88,6 +92,10 @@ jobs:
                 echo "✅ Fixed! nginx can now read index.html"
               else
                 echo "❌ Still cannot read - manual intervention needed"
+                echo "File permissions:"
+                ls -la /home/saddleup/saddleup/frontend/index.html
+                echo "Parent directory permissions:"
+                ls -la /home/saddleup/saddleup/
                 exit 1
               fi
             fi
