@@ -1,0 +1,33 @@
+{
+  "name": "saddleup-frontend",
+  "version": "1.0.0",
+  "description": "Frontend unit tests for SaddleUp.io horse racing game",
+  "main": "script.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0"
+  },
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        }
+      ]
+    ]
+  },
+  "keywords": ["testing", "jest", "javascript", "frontend", "websocket", "horse-racing"],
+  "author": "SaddleUp.io",
+  "license": "MIT"
+}

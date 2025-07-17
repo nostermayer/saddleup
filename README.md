@@ -52,6 +52,7 @@ saddleup/
 │   ├── services.py         # Business logic services (betting, race, payout)
 │   ├── utils.py            # Utility functions and error handling
 │   ├── config.py           # Configuration management
+│   ├── game_logger.py      # Discord webhook logging system
 │   └── server.py           # Main server entry point
 ├── frontend/
 │   ├── index.html          # Main HTML interface
@@ -108,6 +109,10 @@ export WEBSOCKET_PORT=9000
 export BETTING_DURATION=45
 export MAX_CONCURRENT_USERS=2000
 
+# Optional: Enable Discord webhook logging
+export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/your-webhook-url"
+export ENVIRONMENT="production"
+
 cd backend
 python server.py
 ```
@@ -131,6 +136,20 @@ All game settings can be configured via environment variables in `config/setting
 - `ODDS_UPDATE_INTERVAL` - Odds update frequency in seconds (default: 0.25)
 - `STARTING_BALANCE` - Player starting balance (default: $10)
 - `MAX_CONCURRENT_USERS` - Maximum concurrent connections (default: 1000)
+
+### Discord Webhook Logging
+
+Optional Discord webhook integration for server monitoring:
+
+- `DISCORD_WEBHOOK_URL` - Discord webhook URL for notifications
+- `ENVIRONMENT` - Set to "production" to enable Discord notifications (default: development)
+
+**Discord Features:**
+- User connection/disconnection notifications
+- Server status updates every 10 races
+- Error logging and monitoring
+- Rich embed formatting with colored messages
+- Development mode logs to console instead of Discord
 
 ## Game Mechanics
 
