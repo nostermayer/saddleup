@@ -3,10 +3,8 @@ import requests
 import datetime
 import aiohttp
 import os
-from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
-load_dotenv()  # This loads the variables from .env into os.environ
 
 
 class GameLogger:
@@ -21,6 +19,7 @@ class GameLogger:
         else:
             # Check if we're in production
             self.is_production = os.getenv("ENVIRONMENT") == "production"
+            logger.info(f"Webhook URL loaded successfully - {self.webhook_url}")
 
         if not self.is_production:
             logger.info(
@@ -28,6 +27,10 @@ class GameLogger:
             )
         else:
             logger.info("🚀 Production mode: Discord notifications enabled")
+
+    def log_generic_event(self, message):
+        """Log a generic event to the logger."""
+        logger.info("Generic Event: %s", message)
 
     def log_user_join(self, username, user_count, ip_address=None):
         """Log when a user connects to the game"""
@@ -151,6 +154,7 @@ class GameLogger:
         """Send data to Discord webhook"""
         # Skip sending if not in production
         if not self.webhook_url:
+            logger.info(f"hook url is {self.webhook_url}")
             logger.info(
                 f"[DEV] Would send Discord notification: {data['embeds'][0]['title']}"
             )
@@ -159,6 +163,9 @@ class GameLogger:
         try:
             response = requests.post(self.webhook_url, json=data)
             response.raise_for_status()
+            logger.info(
+                f"Discord notification sent: {data['embeds'][0]['title']}"
+            )
         except requests.exceptions.RequestException as e:
             logger.info(f"Discord logging failed: {e}")
 

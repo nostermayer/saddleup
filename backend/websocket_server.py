@@ -5,9 +5,11 @@ import time
 import uuid
 import websockets
 from typing import Dict, Set
+from game_logger import GameLogger
 from models import GameState, User, Bet, BetType, RacePhase
 from race_engine import RaceEngine
 from ai_players import AIPlayerManager
+
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +18,7 @@ class WebSocketServer:
     def __init__(self, host="localhost", port=8765):
         self.host = host
         self.port = port
+        self.game_logger = GameLogger()
         self.game_state = GameState()
         self.race_engine = RaceEngine()
         self.connected_clients: Dict[str, websockets.WebSocketServerProtocol] = {}
@@ -81,7 +84,7 @@ class WebSocketServer:
         
         # Rate limiting check
         if self.is_rate_limited(client_ip):
-            logger.warning(f"Rate limited connection from {client_ip}")
+            logger.warning("Rate limited connection from %s", client_ip)
             await websocket.close(code=1008, reason="Rate limited")
             return
         
@@ -219,6 +222,7 @@ class WebSocketServer:
             user_id = str(uuid.uuid4())
             user = User(id=user_id, username=username)
             self.game_state.add_user(user)
+            await self.game_logger.async_log_user_join(user.username, len(self.game_state.users))
         else:
             user = self.game_state.get_user(user_id)
             user.connected = True
@@ -235,7 +239,6 @@ class WebSocketServer:
             "type": "login_success",
             "user": self.serialize_user(user)
         })
-        
         await self.send_race_state(connection_id)
         self.game_state.update_leaderboard(self.ai_manager.get_all_ai_users())
     
