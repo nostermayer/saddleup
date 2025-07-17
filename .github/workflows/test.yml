@@ -22,26 +22,24 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest pytest-cov
+        # Install test dependencies
+        if [ -f backend/tests/requirements.txt ]; then pip install -r backend/tests/requirements.txt; fi
+        # Install production dependencies
+        if [ -f saddleup/requirements.txt ]; then pip install -r saddleup/requirements.txt; fi
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
         
-    - name: Find and run all test files
+    - name: Run backend tests
       run: |
-        echo "Finding all Python test files..."
-        find . -name "*_test.py" -type f | head -20
+        echo "Running backend tests using test_runner..."
+        cd saddleup/backend
+        python tests/test_runner.py
         
-        echo "Running all tests with pytest..."
-        python -m pytest $(find . -name "*_test.py") -v --tb=short
-        
-    - name: Generate test report
+    - name: Run backend tests with coverage
       run: |
-        echo "All tests completed successfully!"
-        find . -name "*_test.py" -type f | wc -l | xargs echo "Total test files found:"
-
-    - name: Run tests with coverage
-      run: |
-        python -m pytest $(find . -name "*_test.py") --cov=. --cov-report=html --cov-report=term-missing
+        echo "Running backend tests with coverage..."
+        cd saddleup/backend
+        python -m pytest tests/ --cov=. --cov-report=html --cov-report=term-missing --cov-fail-under=80
 
     - name: Install linting tools
       run: pip install flake8 black
@@ -50,3 +48,25 @@ jobs:
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         black --check .
+
+    - name: Setup Node.js for frontend tests
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        
+    - name: Install frontend dependencies
+      run: |
+        cd saddleup/frontend
+        npm install
+        
+    - name: Run frontend tests
+      run: |
+        echo "Running frontend tests..."
+        cd saddleup/frontend
+        npm test
+        
+    - name: Run frontend tests with coverage
+      run: |
+        echo "Running frontend tests with coverage..."
+        cd saddleup/frontend
+        npm run test:coverage
